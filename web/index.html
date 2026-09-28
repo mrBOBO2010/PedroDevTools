@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PedroDevTools — видео и фото</title>
+<link rel="stylesheet" href="/style.css?v=3.2">
+<script>
+// Тему ставим до отрисовки, иначе на долю секунды мелькает тёмная.
+(function () {
+  var t = "dark";
+  try {
+    var s = localStorage.getItem("pd_theme");
+    if (s === "light" || s === "dark") t = s;
+    else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) t = "light";
+  } catch (e) {}
+  document.documentElement.setAttribute("data-theme", t);
+})();
+</script>
+</head>
+<body>
+<div id="err" class="err" hidden></div>
+
+<div class="app">
+  <aside class="side">
+    <div class="side-in">
+      <div class="brand">
+        <span class="b1">PedroDev</span>
+        <img class="bmark" src="/PedroDevLOGO.png?v=1" alt="PedroDev">
+        <span class="b2">Tools</span>
+      </div>
+      <div class="modeseg" id="modeseg">
+        <button id="mode-simple" type="button">Простой</button>
+        <button id="mode-adv" type="button">Расширенный</button>
+      </div>
+      <div class="modeseg" id="themeseg">
+        <button id="theme-dark" type="button">Тёмная</button>
+        <button id="theme-light" type="button">Светлая</button>
+      </div>
+      <div id="tablist" class="tabs"></div>
+      <div id="health" class="health"></div>
+    </div>
+  </aside>
+
+  <main class="main" id="upscaleview">
+    <section class="card" id="sec-file">
+      <h2>1. Видео</h2>
+      <div id="drop" class="drop">
+        <div class="drop-title">Перетащите видеофайл сюда</div>
+        <div class="drop-hint">MP4, MKV, MOV, WebM, AVI · или нажмите для выбора</div>
+        <input id="file" type="file" accept="video/*" hidden>
+      </div>
+      <div id="fileinfo" class="fileinfo" hidden></div>
+      <table id="metatable" class="meta" hidden></table>
+      <div id="preview" class="preview" hidden></div>
+    </section>
+
+    <section class="card" id="sec-engine">
+      <h2>2. Движок и модель</h2>
+      <div class="row adv-only" id="engine-row">
+        <label class="radio"><input type="radio" name="engine" value="gpu"> <span>GPU · Real-ESRGAN <span id="gpu-name" class="dim"></span></span></label>
+        <label class="radio"><input type="radio" name="engine" value="srmd"> <span>GPU · SRMD быстрый ×2–×4</span></label>
+        <label class="radio"><input type="radio" name="engine" value="cpu"> <span>Процессор</span></label>
+      </div>
+      <div id="engine-note" class="note" hidden></div>
+      <label class="lbl">Модель</label>
+      <select id="model" class="inp"></select>
+      <div id="model-desc" class="dim"></div>
+      <div id="model-status" class="note" hidden></div>
+      <div class="simple-only" style="margin-top:12px">
+        <div class="lbl">Движок выбирается сам (GPU, иначе процессор)</div>
+      </div>
+    </section>
+
+    <section class="card" id="sec-scale">
+      <h2>3. Разрешение</h2>
+      <div class="simple-only">
+        <div class="lbl">Что хотим получить</div>
+        <div class="goalbtns" id="goalbtns"></div>
+      </div>
+      <div class="row adv-only" id="scalemode-row">
+        <label class="radio"><input type="radio" name="scale_mode" value="percent"> <span>Процент</span></label>
+        <label class="radio"><input type="radio" name="scale_mode" value="pixels"> <span>Пиксели</span></label>
+        <label class="radio"><input type="radio" name="scale_mode" value="long_edge"> <span>Длинная сторона</span></label>
+      </div>
+      <div id="p-percent">
+        <div id="pct-quick" class="quick"></div>
+        <div class="pair"><input id="percent" type="range" min="50" max="800" step="5" class="rng"><input id="percent-n" type="number" min="50" max="800" step="5" class="inp num"></div>
+      </div>
+      <div id="p-pixels" class="adv-only" hidden>
+        <div id="res-quick" class="quick"></div>
+        <div class="grid2">
+          <div><label class="lbl">Ширина, px</label><input id="width" type="number" min="2" max="16384" step="2" class="inp num"></div>
+          <div><label class="lbl">Высота, px</label><input id="height" type="number" min="2" max="16384" step="2" class="inp num"></div>
+        </div>
+        <label class="check"><input id="keep_width" type="checkbox"> <span>Пропорции по ширине</span></label>
+        <label class="check"><input id="keep_height" type="checkbox" checked> <span>Пропорции по высоте</span></label>
+        <label class="check"><input id="even_only" type="checkbox" checked> <span>Только чётные (нужно для yuv420p)</span></label>
+      </div>
+      <div id="p-edge" class="adv-only" hidden>
+        <label class="lbl">Длинная сторона, px</label>
+        <div class="pair"><input id="long_edge" type="range" min="256" max="7680" step="16" class="rng"><input id="long_edge-n" type="number" min="256" max="7680" step="16" class="inp num"></div>
+      </div>
+      <div id="calc" class="calc">Загрузите видео — здесь появится расчёт.</div>
+      <div id="scale-note" class="note" hidden></div>
+    </section>
+
+    <section class="card adv-only" id="sec-out">
+      <h2>4. Выход</h2>
+      <div class="grid2">
+        <div><label class="lbl">Пресет</label><select id="preset" class="inp"></select></div>
+        <div><label class="lbl">Контейнер</label><select id="container" class="inp">
+          <option value="mp4">MP4</option><option value="mkv">MKV</option><option value="webm">WebM</option>
+        </select></div>
+        <div><label class="lbl">Кодек</label><select id="codec" class="inp">
+          <option value="libx264">H.264 (libx264)</option>
+          <option value="libx265">H.265 (libx265)</option>
+          <option value="h264_nvenc">H.264 NVENC (только NVIDIA)</option>
+          <option value="hevc_nvenc">H.265 NVENC (только NVIDIA)</option>
+          <option value="libvpx-vp9">VP9 (только WebM)</option>
+        </select></div>
+        <div><label class="lbl">Качество</label>
+          <div class="row">
+            <label class="radio"><input type="radio" name="crf_mode" value="crf"> <span>CRF</span></label>
+            <label class="radio"><input type="radio" name="crf_mode" value="bitrate"> <span>Битрейт</span></label>
+          </div>
+        </div>
+        <div id="w-crf"><label class="lbl">CRF (меньше — лучше)</label>
+          <div class="pair"><input id="crf" type="range" min="0" max="51" step="1" class="rng"><input id="crf-n" type="number" min="0" max="51" step="1" class="inp num"></div>
+        </div>
+        <div id="w-bitrate" hidden><label class="lbl">Битрейт, кбит/с</label><input id="bitrate" type="number" min="200" max="200000" step="100" class="inp num"></div>
+        <div><label class="lbl">Пресет кодировщика</label><select id="x264_preset" class="inp">
+          <option value="ultrafast">ultrafast</option><option value="veryfast">veryfast</option>
+          <option value="faster">faster</option><option value="medium">medium</option>
+          <option value="slow">slow</option><option value="slower">slower</option>
+          <option value="veryslow">veryslow</option>
+        </select></div>
+        <div><label class="lbl">FPS (0 — как в исходнике)</label><input id="fps" type="number" min="0" max="240" step="1" class="inp num"></div>
+        <div><label class="lbl">Аудио</label><select id="audio" class="inp">
+          <option value="copy">Копировать</option><option value="aac">Перекодировать в AAC</option><option value="none">Убрать</option>
+        </select></div>
+        <div><label class="lbl">Размер чанка, сек</label><input id="chunk_seconds" type="number" min="1" max="120" step="1" class="inp num"></div>
+      </div>
+      <details class="adv"><summary>Дополнительно</summary>
+        <div class="grid2">
+          <div><label class="lbl">Потоки</label><input id="threads" type="number" min="1" max="16" step="1" class="inp num"></div>
+          <div><label class="lbl">Тайл (0 — авто)</label><input id="tile" type="number" min="0" max="512" step="32" class="inp num"></div>
+          <div><label class="lbl">Начало, сек</label><input id="time_start" type="number" min="0" max="86400" step="0.5" class="inp num"></div>
+          <div><label class="lbl">Длительность, сек (0 — всё)</label><input id="duration" type="number" min="0" max="86400" step="0.5" class="inp num"></div>
+        </div>
+        <label class="check"><input id="tta" type="checkbox"> <span>TTA (медленнее, чуть качественнее)</span></label>
+        <div><label class="lbl">Битрейт аудио, кбит/с</label><input id="audio_bitrate" type="number" min="64" max="512" step="32" class="inp num"></div>
+      </details>
+    </section>
+
+    <section class="card" id="sec-run">
+      <h2>5. Запуск</h2>
+      <div id="estimate" class="dim"></div>
+      <div class="row">
+        <button id="runbtn" type="button" class="btn primary" onclick="window.__pedroStart(event)">Запустить апскейл</button>
+        <button id="stopbtn" type="button" class="btn danger" onclick="window.__pedroCancel(event)">Отменить</button>
+        <button id="copycmd" type="button" class="btn adv-only">Копировать команду</button>
+      </div>
+      <div id="start-why" class="dim" style="margin-top:8px">Загрузите видео — кнопка оживёт сама.</div>
+      <div id="progress" class="progress" hidden>
+        <div class="prow"><span id="p-stage">…</span><b id="p-pct">0%</b></div>
+        <div class="track"><div id="p-fill" class="fill"></div></div>
+        <div id="p-stats" class="dim"></div>
+      </div>
+      <div id="result" class="result" hidden></div>
+    </section>
+
+    <section class="card adv-only" id="sec-log">
+      <h2>Журнал</h2>
+      <pre id="log" class="log"></pre>
+    </section>
+  </main>
+
+  <main class="main" id="toolview" hidden>
+    <section class="card">
+      <h2 id="tool-title">Инструмент</h2>
+      <div id="tool-desc" class="dim"></div>
+    </section>
+    <section class="card">
+      <h2>Файл</h2>
+      <div id="tool-drop" class="drop">
+        <div class="drop-title">Перетащите файл сюда</div>
+        <div class="drop-hint" id="tool-drop-hint">или нажмите для выбора</div>
+        <input id="tool-file" type="file" hidden>
+      </div>
+      <div id="tool-fileinfo" class="fileinfo" hidden></div>
+      <div id="tool-meta"></div>
+      <div id="tool-preview" class="preview" hidden></div>
+    </section>
+    <section class="card" id="sec-tool2" hidden>
+      <h2 id="tool2-title">Второй файл</h2>
+      <div id="tool-drop2" class="drop">
+        <div class="drop-title">Перетащите второй файл сюда</div>
+        <div class="drop-hint" id="tool-drop2-hint">или нажмите для выбора</div>
+        <input id="tool-file2" type="file" hidden>
+      </div>
+      <div id="tool-fileinfo2" class="fileinfo" hidden></div>
+      <div id="tool-preview2" class="preview" hidden></div>
+    </section>
+    <section class="card" id="sec-scrub" hidden>
+      <h2>Нарезка мышкой</h2>
+      <div class="scrub-wrap">
+        <div class="scrub-frame"><img id="scrub-img" alt="кадр" hidden></div>
+        <div class="scrub-side">
+          <div class="scrub-times">
+            <span>Начало <b id="scrub-start">0:00.0</b></span>
+            <span>Конец <b id="scrub-end">0:00.0</b></span>
+            <span>Длина <b id="scrub-len">0:00.0</b></span>
+          </div>
+          <div class="scrub-track" id="scrub-track">
+            <div class="scrub-sel" id="scrub-sel"></div>
+            <div class="scrub-h" id="scrub-h0" data-h="0"><i></i><span>начало</span></div>
+            <div class="scrub-h" id="scrub-h1" data-h="1"><i></i><span>конец</span></div>
+          </div>
+          <div class="scrub-scale" id="scrub-scale"></div>
+          <div class="row">
+            <button id="scrub-min" type="button" class="btn">Короче</button>
+            <button id="scrub-max" type="button" class="btn">Длиннее</button>
+            <button id="scrub-in" type="button" class="btn">К началу</button>
+            <button id="scrub-out" type="button" class="btn">До конца</button>
+          </div>
+          <div class="dim" style="margin-top:10px">Тяните полоски за края выделения или за середину, чтобы сдвинуть весь кусок.</div>
+        </div>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Настройки</h2>
+      <div id="tool-form"></div>
+    </section>
+    <section class="card">
+      <h2>Запуск</h2>
+      <div id="tool-estimate" class="dim"></div>
+      <div class="row">
+        <button id="tool-run" type="button" class="btn primary">Запустить</button>
+        <button id="tool-cancel" type="button" class="btn danger">Отменить</button>
+      </div>
+      <div id="tool-why" class="dim" style="margin-top:8px"></div>
+      <div id="tool-progress" class="progress" hidden>
+        <div class="prow"><span id="tool-stage">…</span><b id="tool-pct">0%</b></div>
+        <div class="track"><div id="tool-fill" class="fill"></div></div>
+        <div id="tool-stats" class="dim"></div>
+      </div>
+      <div id="tool-result" class="result" hidden></div>
+    </section>
+    <section class="card adv-only">
+      <h2>Журнал</h2>
+      <pre id="tool-log" class="log"></pre>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="foot-about">
+      <div class="foot-brand">
+        <img src="/PedroDevLOGO.png?v=1" alt="PedroDev">
+        <span><b>PedroDev</b> Tools</span>
+      </div>
+      <p class="foot-lead">Инструменты для видео, фото, музыки и картинок. Всё локально, файлы никуда не уходят.</p>
+      <p class="foot-note">© 2026 PedroDev</p>
+    </div>
+    <div class="foot-contacts">
+      <a href="https://t.me/zpedrodev" target="_blank" rel="noopener">Telegram PedroDev</a>
+      <a href="https://t.me/MRbobo2010" target="_blank" rel="noopener">Telegram MrBoBo2010</a>
+      <a href="https://github.com/mrBOBO2010" target="_blank" rel="noopener">GitHub MrBoBo2010</a>
+      <span class="foot-dev">Единственный Разработчик MrBoBo2010 💪</span>
+    </div>
+  </footer>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// Ловушка ошибок — срабатывает раньше основного скрипта.
+window.__booted = false;
+window.addEventListener("error", function (e) {
+  if (window.__booted) return;
+  var box = document.getElementById("err");
+  box.hidden = false;
+  box.textContent = "Ошибка запуска: " + (e.message || "неизвестно") + " @" + ((e.filename || "").split("/").pop() || "?") + ":" + (e.lineno || "?");
+}, true);
+</script>
+<script src="/app.js?v=3.2"></script>
+</body>
+</html>
