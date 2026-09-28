@@ -11,11 +11,15 @@ bin/
 output/
 
 # Промежуточные кадры, загруженные исходники и логи.
-# Тесты в tmp/ при этом остаются в репозитории.
+# Тесты в tmp/ при этом остаются в репозитории, вместе с package.json —
+# без него jsdom-тесты запустить нечем.
 tmp/*
 !tmp/*.py
 !tmp/*.js
+!tmp/package.json
+!tmp/package-lock.json
 tmp/node_modules/
+tmp/engines/
 tmp/fx_*
 tmp/e2e_*
 tmp/*.log
